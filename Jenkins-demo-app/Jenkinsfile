@@ -1,14 +1,16 @@
 pipeline {
     agent any
 
+    // Triggers configured for every minute (Uncomment if needed)
     // triggers {
-    //     pollSCM('H/1 * * * *')   // Every 1 min
+    //     pollSCM('H/1 * * * *')
     // }
 
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main',
+                // specific branch and url
+                git branch: 'main', 
                     url: 'https://github.com/scaler-bhavya/jenkins-java.git'
             }
         }
@@ -16,6 +18,7 @@ pipeline {
         stage('Build') {
             steps {
                 dir('Jenkins-demo-app') {
+                    // Maven build command
                     sh 'mvn clean package'
                 }
             }
@@ -24,7 +27,12 @@ pipeline {
         stage('Deploy') {
             steps {
                 dir('Jenkins-demo-app') {
-                    sh 'java -jar target/*.jar'
+                    // IMPORTANT: 'java -jar' runs forever for web apps. 
+                    // Added a timeout so the pipeline doesn't hang indefinitely.
+                    timeout(time: 1, unit: 'MINUTES') { 
+                        // "|| true" ensures the pipeline continues even if we stop the server
+                        sh 'java -jar target/*.jar || true' 
+                    }
                 }
             }
         }
@@ -33,15 +41,27 @@ pipeline {
     post {
         success {
             echo 'Pipeline Succeeded.'
-            mail to: 'your-email@example.com',
+            mail to: 'bhavya.sachdeva.58@gmail.com', // <--- REPLACE THIS EMAIL
                  subject: "SUCCESS: Build ${currentBuild.fullDisplayName}",
-                 body: "The build completed successfully.\nView logs: ${env.BUILD_URL}"
+                 body: """
+                 The build completed successfully.
+                 
+                 Project: ${env.JOB_NAME}
+                 Build Number: ${env.BUILD_NUMBER}
+                 URL: ${env.BUILD_URL}
+                 """
         }
         failure {
             echo 'Pipeline Failed.'
-            mail to: 'your-email@example.com',
+            mail to: 'bhavya.sachdeva.58@gmail.com', // <--- REPLACE THIS EMAIL
                  subject: "FAILURE: Build ${currentBuild.fullDisplayName}",
-                 body: "The build failed.\nView logs: ${env.BUILD_URL}"
+                 body: """
+                 The build failed. Please check the logs.
+                 
+                 Project: ${env.JOB_NAME}
+                 Build Number: ${env.BUILD_NUMBER}
+                 URL: ${env.BUILD_URL}
+                 """
         }
     }
 }
