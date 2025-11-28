@@ -1,27 +1,31 @@
 pipeline {
     agent any
-    tools { 
-        maven 'M3' 
+
+    triggers {
+        pollSCM('H/1 * * * *')   // Every 1 min
     }
+
     stages {
-        stage('Initialize') {
+        stage('Checkout Code') {
             steps {
-                echo 'Checking Java and Maven versions...'
-                sh 'mvn -version'
-                sh 'java -version'
+                git branch: 'main',
+                    url: 'https://github.com/scaler-bhavya/jenkins-java.git'
             }
         }
+
         stage('Build') {
             steps {
-                echo 'Building the application...'
-                sh 'mvn clean package'
+                dir('Jenkins-demo-app') {
+                    sh 'mvn clean package'
+                }
             }
         }
+
         stage('Deploy') {
             steps {
-                echo 'Deploying application...'
-                sh 'echo "Simulating deployment..."'
-                sh 'java -cp target/jenkins-demo-app-1.0-SNAPSHOT.jar com.example.SimpleApp'
+                dir('Jenkins-demo-app') {
+                    sh 'java -jar target/*.jar'
+                }
             }
         }
     }
